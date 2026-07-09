@@ -1,3 +1,17 @@
 spring:
   application:
     name: picpay-simplified-api
+  datasource:
+    url: jdbc:h2:mem:picpaysimplifieddb;INIT=CREATE SCHEMA IF NOT EXISTS app
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: none
+  sql:
+    init:
+      mode: always
