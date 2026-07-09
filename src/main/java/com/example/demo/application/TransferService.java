@@ -3,19 +3,24 @@ package com.example.demo.application;
 import com.example.demo.application.port.in.TransferCommand;
 import com.example.demo.application.port.in.TransferResult;
 import com.example.demo.application.port.in.TransferUseCase;
+import com.example.demo.application.port.out.AuthorizationGateway;
+import com.example.demo.application.port.out.AuthorizeCommand;
 import com.example.demo.application.port.out.CustomerRepository;
 import com.example.demo.application.port.out.WalletRepository;
 import com.example.demo.domain.CustomerType;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TransferService implements TransferUseCase {
 
   private final CustomerRepository customerRepository;
   private final WalletRepository walletRepository;
+  private final AuthorizationGateway authorizationGateway;
 
   @Transactional
   public TransferResult execute(TransferCommand command) {
@@ -42,6 +47,8 @@ public class TransferService implements TransferUseCase {
     }
 
     //TODO: authorizar
+    final var authorizationResult = authorizationGateway.authorize(new AuthorizeCommand(payerId, payeeId, amount));
+    log.info("auth result: {}", authorizationResult);
 
     final var updatedPayerWallet = payerWallet.withBalance(payerWallet.getBalance().subtract(amount));
     walletRepository.save(updatedPayerWallet);

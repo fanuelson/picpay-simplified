@@ -15,3 +15,7 @@ spring:
   sql:
     init:
       mode: always
+
+external:
+  authorization:
+    url: https://util.devi.tools/api/v2
