@@ -6,9 +6,9 @@ import com.example.demo.application.port.out.AuthorizeResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.util.UUID;
 
@@ -24,23 +24,22 @@ public class AuthorizeClientGateway implements AuthorizationGateway {
 
   @Override
   public AuthorizeResult authorize(AuthorizeCommand command) {
-    final var response = restClient.get()
-        .uri("/authorize")
-        .retrieve()
-        .onStatus(
-            HttpStatusCode::isError,
-            (req, res) -> {
-              throw new RuntimeException(res.getStatusText());
-            }
-        )
-        .body(AuthorizeResponse.class);
+    final AuthorizeResponse response;
+    try {
+      response = restClient.get()
+          .uri("/authorize")
+          .retrieve()
+          .body(AuthorizeResponse.class);
+    } catch (RestClientException e) {
+      log.warn("authorization call failed: {}", e.getMessage());
+      return new AuthorizeResult.Failed(e.getMessage());
+    }
 
     if (isNull(response) || response.isUnauthorized()) {
       return new AuthorizeResult.Unauthorized("Unauthorized");
     }
 
     return new AuthorizeResult.Authorized(generateAuthorizationCode());
-
   }
 
   private String generateAuthorizationCode() {

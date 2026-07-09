@@ -5,6 +5,7 @@ import com.example.demo.application.port.in.TransferResult;
 import com.example.demo.application.port.in.TransferUseCase;
 import com.example.demo.application.port.out.AuthorizationGateway;
 import com.example.demo.application.port.out.AuthorizeCommand;
+import com.example.demo.application.port.out.AuthorizeResult;
 import com.example.demo.application.port.out.CustomerRepository;
 import com.example.demo.application.port.out.WalletRepository;
 import com.example.demo.domain.CustomerType;
@@ -46,9 +47,14 @@ public class TransferService implements TransferUseCase {
       return new TransferResult.Failed("saldo insuficiente");
     }
 
-    //TODO: authorizar
     final var authorizationResult = authorizationGateway.authorize(new AuthorizeCommand(payerId, payeeId, amount));
-    log.info("auth result: {}", authorizationResult);
+    switch (authorizationResult) {
+      case AuthorizeResult.Authorized ignored -> { }
+      case AuthorizeResult.Unauthorized unauthorized ->
+          { return new TransferResult.Failed("transferência não autorizada: " + unauthorized.reason()); }
+      case AuthorizeResult.Failed failed ->
+          { return new TransferResult.Failed("serviço autorizador indisponível: " + failed.reason()); }
+    }
 
     final var updatedPayerWallet = payerWallet.withBalance(payerWallet.getBalance().subtract(amount));
     walletRepository.save(updatedPayerWallet);

@@ -5,7 +5,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
+
+import java.time.Duration;
 
 @Slf4j
 @Configuration
@@ -14,12 +17,26 @@ public class RestClientConfig {
   @Value("${external.authorization.url}")
   private String authorizationUrl;
 
+  @Value("${external.authorization.connect-timeout:2s}")
+  private Duration connectTimeout;
+
+  @Value("${external.authorization.read-timeout:3s}")
+  private Duration readTimeout;
+
   @Bean
   public RestClient authorizationRestClient() {
     return RestClient.builder()
       .baseUrl(authorizationUrl)
+      .requestFactory(clientHttpRequestFactory())
       .requestInterceptor(loggingInterceptor())
       .build();
+  }
+
+  private SimpleClientHttpRequestFactory clientHttpRequestFactory() {
+    final var factory = new SimpleClientHttpRequestFactory();
+    factory.setConnectTimeout(connectTimeout);
+    factory.setReadTimeout(readTimeout);
+    return factory;
   }
 
   private ClientHttpRequestInterceptor loggingInterceptor() {
