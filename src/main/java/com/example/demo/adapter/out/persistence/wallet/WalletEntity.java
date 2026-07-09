@@ -37,7 +37,6 @@ public class WalletEntity {
   private LocalDateTime updatedAt;
 
   public static WalletEntity from(Wallet wallet) {
-    new WalletEntity();
     return new WalletEntity(
         wallet.getCustomerId().value(),
         wallet.getBalance().getAmountInCents(),
