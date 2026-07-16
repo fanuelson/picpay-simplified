@@ -24,18 +24,23 @@ public class NotificationClientGateway implements NotificationGateway {
 
   @Override
   public NotifyResult notify(NotifyCommand command) {
-    final var response = restClient.post()
-        .uri("/notify")
-        .contentType(MediaType.APPLICATION_JSON)
-        .body(Map.of("message", command))
-        .retrieve()
-        .onStatus(
-            HttpStatusCode::isError,
-            (req, res) -> {
-              throw new NotificationFailedException(res.getStatusText());
-            }
-        )
-        .toBodilessEntity();
+    try {
+      restClient.post()
+          .uri("/notify")
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(Map.of("message", command))
+          .retrieve()
+          .onStatus(
+              HttpStatusCode::isError,
+              (req, res) -> {
+                throw new NotificationFailedException(res.getStatusText());
+              }
+          )
+          .toBodilessEntity();
+    } catch (Exception e) {
+      return new NotifyResult.Failed(e.getMessage());
+    }
+
 
     return new NotifyResult.Ok();
   }

@@ -8,11 +8,18 @@ import com.example.demo.application.port.out.WalletRepository;
 import com.example.demo.application.port.out.authorization.AuthorizationGateway;
 import com.example.demo.application.port.out.authorization.AuthorizeCommand;
 import com.example.demo.application.port.out.authorization.AuthorizeResult;
+import com.example.demo.application.port.out.notification.NotificationGateway;
+import com.example.demo.application.port.out.notification.NotifyCommand;
+import com.example.demo.application.port.out.notification.NotifyResult;
+import com.example.demo.domain.Customer;
 import com.example.demo.domain.CustomerType;
+import com.example.demo.domain.money.Money;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
 
 @Slf4j
 @Service
@@ -22,6 +29,7 @@ public class TransferService implements TransferUseCase {
   private final CustomerRepository customerRepository;
   private final WalletRepository walletRepository;
   private final AuthorizationGateway authorizationGateway;
+  private final NotificationGateway notificationGateway;
 
   @Transactional
   public TransferResult execute(TransferCommand command) {
@@ -49,11 +57,14 @@ public class TransferService implements TransferUseCase {
 
     final var authorizationResult = authorizationGateway.authorize(new AuthorizeCommand(payerId, payeeId, amount));
     switch (authorizationResult) {
-      case AuthorizeResult.Authorized ignored -> { }
-      case AuthorizeResult.Unauthorized ignored ->
-          { return new TransferResult.Failed("transferência não autorizada"); }
-      case AuthorizeResult.Failed failed ->
-          { return new TransferResult.Failed("serviço autorizador indisponível: " + failed.reason()); }
+      case AuthorizeResult.Authorized ignored -> {
+      }
+      case AuthorizeResult.Unauthorized ignored -> {
+        return new TransferResult.Failed("transferência não autorizada");
+      }
+      case AuthorizeResult.Failed failed -> {
+        return new TransferResult.Failed("serviço autorizador indisponível: " + failed.reason());
+      }
     }
 
     final var updatedPayerWallet = payerWallet.withBalance(payerWallet.getBalance().subtract(amount));
@@ -63,9 +74,34 @@ public class TransferService implements TransferUseCase {
     final var updatedPayeeWallet = payeeWallet.withBalance(payeeWallet.getBalance().add(amount));
     walletRepository.save(updatedPayeeWallet);
 
-    //TODO: notificar
+    final var payeeCustomer = customerRepository.findById(payeeId).orElseThrow();
+    notifyCustomers(payerCustomer, payeeCustomer, amount);
 
     return new TransferResult.Ok();
+  }
+
+  private void notifyCustomers(Customer payer, Customer payee, Money amount) {
+    final var msgPayer = "Você enviou uma transferência de R$ " + BigDecimal.valueOf(amount.getAmountInCents(), 2);
+    final var msgPayee = "Você recebeu uma transferência de R$ " + BigDecimal.valueOf(amount.getAmountInCents(), 2);
+    try {
+      final var resultPayer = notificationGateway.notify(new NotifyCommand(payer.getEmail(), msgPayer));
+      switch (resultPayer) {
+        case NotifyResult.Ok ignored -> {
+        }
+        case NotifyResult.Failed failed ->
+            log.warn("falha ao notificar pagador {}: {}", payer.getId(), failed.reason());
+      }
+
+      final var resultPayee = notificationGateway.notify(new NotifyCommand(payee.getEmail(), msgPayee));
+      switch (resultPayee) {
+        case NotifyResult.Ok ignored -> {
+        }
+        case NotifyResult.Failed failed ->
+            log.warn("falha ao notificar recebedor {}: {}", payee.getId(), failed.reason());
+      }
+    } catch (RuntimeException e) {
+      log.warn("falha ao notificar transferencia {}", e.getMessage());
+    }
   }
 
 }
