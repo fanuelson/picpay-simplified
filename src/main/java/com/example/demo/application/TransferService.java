@@ -3,11 +3,11 @@ package com.example.demo.application;
 import com.example.demo.application.port.in.TransferCommand;
 import com.example.demo.application.port.in.TransferResult;
 import com.example.demo.application.port.in.TransferUseCase;
-import com.example.demo.application.port.out.AuthorizationGateway;
-import com.example.demo.application.port.out.AuthorizeCommand;
-import com.example.demo.application.port.out.AuthorizeResult;
 import com.example.demo.application.port.out.CustomerRepository;
 import com.example.demo.application.port.out.WalletRepository;
+import com.example.demo.application.port.out.authorization.AuthorizationGateway;
+import com.example.demo.application.port.out.authorization.AuthorizeCommand;
+import com.example.demo.application.port.out.authorization.AuthorizeResult;
 import com.example.demo.domain.CustomerType;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -50,8 +50,8 @@ public class TransferService implements TransferUseCase {
     final var authorizationResult = authorizationGateway.authorize(new AuthorizeCommand(payerId, payeeId, amount));
     switch (authorizationResult) {
       case AuthorizeResult.Authorized ignored -> { }
-      case AuthorizeResult.Unauthorized unauthorized ->
-          { return new TransferResult.Failed("transferência não autorizada: " + unauthorized.reason()); }
+      case AuthorizeResult.Unauthorized ignored ->
+          { return new TransferResult.Failed("transferência não autorizada"); }
       case AuthorizeResult.Failed failed ->
           { return new TransferResult.Failed("serviço autorizador indisponível: " + failed.reason()); }
     }
