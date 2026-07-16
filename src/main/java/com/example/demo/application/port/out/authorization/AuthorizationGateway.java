@@ -1,4 +1,4 @@
-package com.example.demo.application.port.out;
+package com.example.demo.application.port.out.authorization;
 
 
 public interface AuthorizationGateway {
