@@ -21,3 +21,7 @@ external:
     url: https://util.devi.tools/api/v2
     connect-timeout: 2s
     read-timeout: 3s
+  notification:
+    url: https://util.devi.tools/api/v1
+    connect-timeout: 2s
+    read-timeout: 3s

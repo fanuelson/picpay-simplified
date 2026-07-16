@@ -17,25 +17,50 @@ public class RestClientConfig {
   @Value("${external.authorization.url}")
   private String authorizationUrl;
 
+  @Value("${external.notification.url}")
+  private String notificationUrl;
+
   @Value("${external.authorization.connect-timeout:2s}")
-  private Duration connectTimeout;
+  private Duration authorizationConnectTimeout;
 
   @Value("${external.authorization.read-timeout:3s}")
-  private Duration readTimeout;
+  private Duration authorizationReadTimeout;
+
+  @Value("${external.notification.connect-timeout:2s}")
+  private Duration notificationConnectTimeout;
+
+  @Value("${external.notification.read-timeout:3s}")
+  private Duration notificationReadTimeout;
 
   @Bean
   public RestClient authorizationRestClient() {
     return RestClient.builder()
-      .baseUrl(authorizationUrl)
-      .requestFactory(clientHttpRequestFactory())
-      .requestInterceptor(loggingInterceptor())
-      .build();
+        .baseUrl(authorizationUrl)
+        .requestFactory(authorizationClientHttpRequestFactory())
+        .requestInterceptor(loggingInterceptor())
+        .build();
   }
 
-  private SimpleClientHttpRequestFactory clientHttpRequestFactory() {
+  @Bean
+  public RestClient notificationRestClient() {
+    return RestClient.builder()
+        .baseUrl(notificationUrl)
+        .requestFactory(notificationClientHttpRequestFactory())
+        .requestInterceptor(loggingInterceptor())
+        .build();
+  }
+
+  private SimpleClientHttpRequestFactory authorizationClientHttpRequestFactory() {
     final var factory = new SimpleClientHttpRequestFactory();
-    factory.setConnectTimeout(connectTimeout);
-    factory.setReadTimeout(readTimeout);
+    factory.setConnectTimeout(authorizationConnectTimeout);
+    factory.setReadTimeout(authorizationReadTimeout);
+    return factory;
+  }
+
+  private SimpleClientHttpRequestFactory notificationClientHttpRequestFactory() {
+    final var factory = new SimpleClientHttpRequestFactory();
+    factory.setConnectTimeout(notificationConnectTimeout);
+    factory.setReadTimeout(notificationReadTimeout);
     return factory;
   }
 
